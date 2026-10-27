@@ -32,7 +32,7 @@ jobs:
         run: |
           mkdir public
           unzip -q CVWerk-Schweiz-Netlify-v10.zip -d public
-          sed -i 's|="/|="/cvwerk-schweiz/|g' $(find public -type f -name '*.html' -o -name '*.js')
+          find public -type f \( -name '*.html' -o -name '*.js' \) -exec sed -i 's|="/|="/cvwerk-schweiz/|g' {} +
 
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
