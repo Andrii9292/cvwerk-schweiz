@@ -32,8 +32,8 @@ jobs:
         run: |
           mkdir public
           unzip -q CVWerk-Schweiz-Netlify-v10.zip -d public
-          find public -type f \( -name '*.html' -o -name '*.js' \) -exec sed -i 's|="/|="/cvwerk-schweiz/|g' {} +
-
+          find public -type f \( -name '*.html' -o -name '*.js' \) -exec sed -i 's|="/|="/cvwerk-schweiz/|g' {}+
+          find public -type f -name '*.html' -exec sed -i 's|action="[^"]*"|action="https://formsubmit.co/burcev9292@gmail.com"|g; s| data-netlify="true"||g; s| netlify-honeypot="bot-field"||g; s|<input type="hidden" name="form-name" value="cvwerk-contact">||g; s|<p class="hidden"><label>Leave empty <input name="bot-field"></label></p>||g' {} +
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
