@@ -21,6 +21,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,8 +31,80 @@ jobs:
 
       - name: Extract website
         run: |
+          set -e
+
+          ZIP="CVWerk-Schweiz-Netlify-v10.zip"
+
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::ZIP archive not found: $ZIP"
+            echo "Files in repository:"
+            ls -la
+            exit 1
+          fi
+
           mkdir public
-          unzip -q CVWerk-Schweiz-Netlify-v10.zip -d public
+          unzip -q "$ZIP" -d public
+
+          echo "=== PUBLIC ROOT ==="
+          find public -maxdepth 2 -type f | sort
+
+      - name: Validate published files
+        run: |
+          set -e
+
+          test -s public/index.html || {
+            echo "::error::public/index.html is missing or empty"
+            exit 1
+          }
+
+          test -s public/sitemap.xml || {
+            echo "::error::public/sitemap.xml is missing or empty"
+            exit 1
+          }
+
+          test -s public/robots.txt || {
+            echo "::error::public/robots.txt is missing or empty"
+            exit 1
+          }
+
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path("public")
+          sitemap = root / "sitemap.xml"
+          expected = "https://andrii9292.github.io/cvwerk-schweiz/"
+
+          try:
+              tree = ET.parse(sitemap)
+              xml_root = tree.getroot()
+          except Exception as e:
+              raise SystemExit(f"Invalid sitemap.xml: {e}")
+
+          urls = [
+              node.text.strip()
+              for node in xml_root.iter()
+              if node.tag.endswith("}loc") and node.text
+          ]
+
+          if not urls:
+              raise SystemExit("sitemap.xml contains no URLs")
+
+          wrong = [url for url in urls if not url.startswith(expected)]
+          if wrong:
+              raise SystemExit(
+                  "Unexpected URLs in sitemap.xml: " + ", ".join(wrong)
+              )
+
+          print(f"OK: index.html exists ({(root / 'index.html').stat().st_size} bytes)")
+          print(f"OK: robots.txt exists ({(root / 'robots.txt').stat().st_size} bytes)")
+          print(f"OK: sitemap.xml is valid XML")
+          print(f"OK: {len(urls)} URLs found in sitemap.xml")
+          print("URLs:")
+          for url in urls:
+              print(f"  {url}")
+          PY
+
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
